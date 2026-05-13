@@ -288,6 +288,20 @@ static CK_RV deserialize_ck_attribute(struct pkcs11_attribute_head *in,
 		return CKR_OK;
 	}
 
+	if (out->type == CKA_ALLOWED_MECHANISMS) {
+		CK_ULONG ck_size = (in->size / sizeof(uint32_t)) *
+				    sizeof(CK_ULONG);
+
+		if (!out->pValue) {
+			out->ulValueLen = ck_size;
+			return CKR_OK;
+		}
+		if (out->ulValueLen < ck_size) {
+			out->ulValueLen = ck_size;
+			return CKR_OK;
+		}
+	}
+
 	if (out->ulValueLen < in->size) {
 		out->ulValueLen = in->size;
 		return CKR_OK;
@@ -363,6 +377,10 @@ CK_RV deserialize_ck_attributes(uint8_t *in, CK_ATTRIBUTE_PTR attributes,
 		if (cur_attr->pValue) {
 			if (ck_attr_is_ulong(cur_attr->type))
 				len += sizeof(uint32_t);
+			else if (cur_attr->type == CKA_ALLOWED_MECHANISMS)
+				len += (cur_attr->ulValueLen /
+					sizeof(CK_ULONG)) *
+				       sizeof(uint32_t);
 			else
 				len += cur_attr->ulValueLen;
 		}
